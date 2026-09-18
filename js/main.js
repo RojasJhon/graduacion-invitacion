@@ -1,36 +1,48 @@
-// ===== Fondo animado de partículas doradas =====
+// ===== Fondo animado: estrellas + fuegos artificiales dorados =====
 (function () {
   const canvas = document.getElementById("particles-canvas");
   if (!canvas) return;
 
   const ctx = canvas.getContext("2d");
-  let particles = [];
   let width, height;
+  let ambientParticles = [];
+  let confettiPieces = [];
+  let fireworks = [];
+
+  const PALETTE = [
+    "212, 175, 55",  // dorado
+    "244, 228, 166", // dorado claro
+    "255, 255, 255", // blanco
+    "255, 99, 132",  // rosa/coral
+    "100, 181, 246", // celeste
+    "186, 104, 200", // lila
+    "129, 199, 132", // verde esmeralda
+    "255, 179, 71",  // naranja suave
+  ];
 
   function resize() {
     width = canvas.width = canvas.offsetWidth;
     height = canvas.height = canvas.offsetHeight;
   }
 
-  function createParticles() {
-    // Densidad ligera: 1 partícula cada ~9000px² de pantalla
-    const count = Math.floor((width * height) / 9000);
-    particles = Array.from({ length: count }, () => ({
+  // ----- Estrellitas de fondo (ambiente) -----
+  function createAmbientParticles() {
+    const count = Math.floor((width * height) / 16000);
+    ambientParticles = Array.from({ length: count }, () => ({
       x: Math.random() * width,
       y: Math.random() * height,
-      radius: Math.random() * 1.4 + 0.3,
-      speedY: Math.random() * 0.15 + 0.03,
-      opacity: Math.random() * 0.6 + 0.2,
+      radius: Math.random() * 1.3 + 0.3,
+      speedY: Math.random() * 0.12 + 0.03,
+      opacity: Math.random() * 0.5 + 0.15,
       twinkleSpeed: Math.random() * 0.02 + 0.005,
       twinklePhase: Math.random() * Math.PI * 2,
     }));
   }
 
-  function draw() {
-    ctx.clearRect(0, 0, width, height);
-    for (const p of particles) {
+  function drawAmbient() {
+    for (const p of ambientParticles) {
       p.twinklePhase += p.twinkleSpeed;
-      const twinkle = (Math.sin(p.twinklePhase) + 1) / 2; // 0 a 1
+      const twinkle = (Math.sin(p.twinklePhase) + 1) / 2;
       const alpha = p.opacity * (0.5 + twinkle * 0.5);
 
       ctx.beginPath();
@@ -38,24 +50,157 @@
       ctx.fillStyle = `rgba(244, 228, 166, ${alpha})`;
       ctx.fill();
 
-      // Sube lentamente y reaparece abajo (efecto flotante)
       p.y -= p.speedY;
       if (p.y < -5) {
         p.y = height + 5;
         p.x = Math.random() * width;
       }
     }
+  }
+
+  // ----- Confeti cayendo (efecto "mistura") -----
+  function createConfetti() {
+    const count = Math.floor((width * height) / 11000);
+    confettiPieces = Array.from({ length: count }, () => ({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      width: 5 + Math.random() * 5,
+      height: 8 + Math.random() * 6,
+      color: PALETTE[Math.floor(Math.random() * PALETTE.length)],
+      alpha: 0.6 + Math.random() * 0.4,
+      speedY: 0.6 + Math.random() * 1.3,
+      swingSpeed: 0.015 + Math.random() * 0.02,
+      swingPhase: Math.random() * Math.PI * 2,
+      rotation: Math.random() * Math.PI * 2,
+      rotationSpeed: (Math.random() - 0.5) * 0.06,
+    }));
+  }
+
+  function drawConfetti() {
+    for (const c of confettiPieces) {
+      ctx.save();
+      ctx.translate(c.x, c.y);
+      ctx.rotate(c.rotation);
+      ctx.fillStyle = `rgba(${c.color}, ${c.alpha})`;
+      ctx.fillRect(-c.width / 2, -c.height / 2, c.width, c.height);
+      ctx.restore();
+
+      c.swingPhase += c.swingSpeed;
+      c.x += Math.sin(c.swingPhase) * 0.7;
+      c.y += c.speedY;
+      c.rotation += c.rotationSpeed;
+
+      if (c.y > height + 15) {
+        c.y = -15;
+        c.x = Math.random() * width;
+      }
+    }
+  }
+
+  // ----- Fuegos artificiales -----
+  function spawnFirework() {
+    const x = width * (0.15 + Math.random() * 0.7);
+    const apexY = height * (0.1 + Math.random() * 0.3);
+    fireworks.push({
+      x,
+      y: height,
+      apexY,
+      speed: 5.5 + Math.random() * 2.5,
+      trail: [],
+      exploded: false,
+      particles: [],
+    });
+
+    // Programa el siguiente disparo (cada 1.2 a 2.8 segundos: más frecuente)
+    const nextDelay = 1200 + Math.random() * 1600;
+    setTimeout(spawnFirework, nextDelay);
+  }
+
+  function explode(fw) {
+    // Cada partícula elige su propio color al azar → explosión multicolor
+    const count = 60 + Math.floor(Math.random() * 30);
+
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count + Math.random() * 0.25;
+      const speed = 2.2 + Math.random() * 4.6;
+      fw.particles.push({
+        x: fw.x,
+        y: fw.y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        alpha: 1,
+        radius: 1.7 + Math.random() * 1.8,
+        color: PALETTE[Math.floor(Math.random() * PALETTE.length)],
+      });
+    }
+    fw.exploded = true;
+  }
+
+  function updateAndDrawFireworks() {
+    for (let f = fireworks.length - 1; f >= 0; f--) {
+      const fw = fireworks[f];
+
+      if (!fw.exploded) {
+        // Estela mientras sube
+        fw.trail.push({ x: fw.x, y: fw.y, alpha: 1 });
+        if (fw.trail.length > 12) fw.trail.shift();
+
+        for (const t of fw.trail) {
+          ctx.beginPath();
+          ctx.arc(t.x, t.y, 1.4, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(244, 228, 166, ${t.alpha * 0.7})`;
+          ctx.fill();
+          t.alpha *= 0.85;
+        }
+
+        fw.y -= fw.speed;
+        if (fw.y <= fw.apexY) {
+          explode(fw);
+        }
+      } else {
+        let alive = false;
+        for (const p of fw.particles) {
+          if (p.alpha <= 0.02) continue;
+          alive = true;
+
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vx *= 0.985; // fricción del aire, hace la explosión más "redonda"
+          p.vy += 0.04; // gravedad suave
+          p.alpha *= 0.965;
+
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${p.color}, ${p.alpha})`;
+          ctx.shadowColor = `rgba(${p.color}, ${p.alpha})`;
+          ctx.shadowBlur = 8;
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+        if (!alive) fireworks.splice(f, 1);
+      }
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, width, height);
+    drawAmbient();
+    drawConfetti();
+    updateAndDrawFireworks();
     requestAnimationFrame(draw);
   }
 
   function init() {
     resize();
-    createParticles();
+    createAmbientParticles();
+    createConfetti();
+    setTimeout(spawnFirework, 800); // primer fuego artificial
   }
 
   window.addEventListener("resize", () => {
     resize();
-    createParticles();
+    createAmbientParticles();
+    createConfetti();
   });
 
   init();
