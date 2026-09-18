@@ -1,6 +1,6 @@
-// ===== Fondo animado: estrellas + fuegos artificiales dorados =====
+// ===== Fondo animado de toda la página: estrellas + confeti (solo portada) + fuegos artificiales =====
 (function () {
-  const canvas = document.getElementById("particles-canvas");
+  const canvas = document.getElementById("fireworks-canvas");
   if (!canvas) return;
 
   const ctx = canvas.getContext("2d");
@@ -21,11 +21,11 @@
   ];
 
   function resize() {
-    width = canvas.width = canvas.offsetWidth;
-    height = canvas.height = canvas.offsetHeight;
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
   }
 
-  // ----- Estrellitas de fondo (ambiente) -----
+  // ----- Estrellitas de fondo (ambiente, en toda la página) -----
   function createAmbientParticles() {
     const count = Math.floor((width * height) / 16000);
     ambientParticles = Array.from({ length: count }, () => ({
@@ -58,7 +58,7 @@
     }
   }
 
-  // ----- Confeti cayendo (efecto "mistura") -----
+  // ----- Confeti cayendo (SOLO visible mientras se ve la portada) -----
   function createConfetti() {
     const count = Math.floor((width * height) / 11000);
     confettiPieces = Array.from({ length: count }, () => ({
@@ -77,6 +77,9 @@
   }
 
   function drawConfetti() {
+    // Solo se dibuja/anima mientras el usuario está viendo la portada
+    if (window.scrollY > window.innerHeight * 0.95) return;
+
     for (const c of confettiPieces) {
       ctx.save();
       ctx.translate(c.x, c.y);
@@ -97,39 +100,39 @@
     }
   }
 
-  // ----- Fuegos artificiales -----
+  // ----- Fuegos artificiales (en TODA la página, grandes y brillantes) -----
   function spawnFirework() {
-    const x = width * (0.15 + Math.random() * 0.7);
-    const apexY = height * (0.1 + Math.random() * 0.3);
+    const x = width * (0.12 + Math.random() * 0.76);
+    const apexY = height * (0.12 + Math.random() * 0.35);
     fireworks.push({
       x,
       y: height,
       apexY,
-      speed: 5.5 + Math.random() * 2.5,
+      speed: 6 + Math.random() * 3,
       trail: [],
       exploded: false,
       particles: [],
     });
 
-    // Programa el siguiente disparo (cada 1.2 a 2.8 segundos: más frecuente)
-    const nextDelay = 1200 + Math.random() * 1600;
+    // Se disparan seguido: cada 1 a 2.4 segundos
+    const nextDelay = 1000 + Math.random() * 1400;
     setTimeout(spawnFirework, nextDelay);
   }
 
   function explode(fw) {
     // Cada partícula elige su propio color al azar → explosión multicolor
-    const count = 60 + Math.floor(Math.random() * 30);
+    const count = 80 + Math.floor(Math.random() * 40);
 
     for (let i = 0; i < count; i++) {
       const angle = (Math.PI * 2 * i) / count + Math.random() * 0.25;
-      const speed = 2.2 + Math.random() * 4.6;
+      const speed = 2.8 + Math.random() * 5.5;
       fw.particles.push({
         x: fw.x,
         y: fw.y,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
         alpha: 1,
-        radius: 1.7 + Math.random() * 1.8,
+        radius: 2.2 + Math.random() * 2.2,
         color: PALETTE[Math.floor(Math.random() * PALETTE.length)],
       });
     }
@@ -143,12 +146,12 @@
       if (!fw.exploded) {
         // Estela mientras sube
         fw.trail.push({ x: fw.x, y: fw.y, alpha: 1 });
-        if (fw.trail.length > 12) fw.trail.shift();
+        if (fw.trail.length > 14) fw.trail.shift();
 
         for (const t of fw.trail) {
           ctx.beginPath();
-          ctx.arc(t.x, t.y, 1.4, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(244, 228, 166, ${t.alpha * 0.7})`;
+          ctx.arc(t.x, t.y, 1.8, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(244, 228, 166, ${t.alpha * 0.8})`;
           ctx.fill();
           t.alpha *= 0.85;
         }
@@ -172,8 +175,8 @@
           ctx.beginPath();
           ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
           ctx.fillStyle = `rgba(${p.color}, ${p.alpha})`;
-          ctx.shadowColor = `rgba(${p.color}, ${p.alpha})`;
-          ctx.shadowBlur = 8;
+          ctx.shadowColor = `rgba(${p.color}, ${Math.min(p.alpha + 0.2, 1)})`;
+          ctx.shadowBlur = 14;
           ctx.fill();
           ctx.shadowBlur = 0;
         }
@@ -194,7 +197,7 @@
     resize();
     createAmbientParticles();
     createConfetti();
-    setTimeout(spawnFirework, 800); // primer fuego artificial
+    setTimeout(spawnFirework, 700); // primer fuego artificial
   }
 
   window.addEventListener("resize", () => {
@@ -205,6 +208,17 @@
 
   init();
   draw();
+})();
+
+// ===== Botón "Ver detalles": baja a la sección de detalles del evento =====
+(function () {
+  const scrollBtn = document.getElementById("scroll-cta");
+  const target = document.getElementById("frase");
+  if (!scrollBtn || !target) return;
+
+  scrollBtn.addEventListener("click", () => {
+    target.scrollIntoView({ behavior: "smooth" });
+  });
 })();
 
 // ===== Animación de aparición al hacer scroll (scroll-reveal) =====

@@ -14,8 +14,9 @@
 </head>
 <body>
 
+  <canvas id="fireworks-canvas"></canvas>
+
   <section class="hero">
-    <canvas id="particles-canvas"></canvas>
     <div class="hero-content">
       <p class="hero-eyebrow">Estás invitado a celebrar</p>
       <h1 class="hero-title">Mi Graduación</h1>
@@ -23,13 +24,10 @@
       <p class="hero-promo">Promoción [Año]</p>
     </div>
 
-    <div class="scroll-indicator">
-      <span class="scroll-mouse"></span>
-      <span class="scroll-label">Desliza</span>
-    </div>
+    <button id="scroll-cta" class="scroll-cta">Ver detalles ↓</button>
   </section>
 
-  <section class="quote-section">
+  <section class="quote-section" id="frase">
     <div class="divider reveal">
       <span class="divider-line"></span>
       <span class="divider-diamond">◆</span>
@@ -69,7 +67,7 @@
     </div>
   </section>
 
-  <section class="details-section">
+  <section class="details-section" id="detalles">
     <div class="details-grid">
       <div class="details-card reveal">
         <span class="details-icon">📅</span>
