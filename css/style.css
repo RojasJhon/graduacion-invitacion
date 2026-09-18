@@ -1,0 +1,26 @@
+/* Reset básico */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  background-color: #0a0a12;
+  color: #f5f0e6;
+  font-family: sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.placeholder h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.placeholder p {
+  color: #b8ab8a;
+}
