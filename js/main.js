@@ -125,3 +125,38 @@
   updateCountdown();
   const timer = setInterval(updateCountdown, 1000);
 })();
+
+// ===== Galería: abrir foto en grande (lightbox) =====
+(function () {
+  const galleryImages = document.querySelectorAll(".gallery-item img");
+  const lightbox = document.getElementById("lightbox");
+  const lightboxImg = document.getElementById("lightbox-img");
+  const closeBtn = document.getElementById("lightbox-close");
+
+  if (!galleryImages.length || !lightbox) return;
+
+  galleryImages.forEach((img) => {
+    img.addEventListener("click", () => {
+      lightboxImg.src = img.src;
+      lightboxImg.alt = img.alt;
+      lightbox.classList.add("active");
+    });
+  });
+
+  function closeLightbox() {
+    lightbox.classList.remove("active");
+    lightboxImg.src = "";
+  }
+
+  closeBtn.addEventListener("click", closeLightbox);
+
+  // Cerrar al hacer clic fuera de la imagen (en el fondo oscuro)
+  lightbox.addEventListener("click", (e) => {
+    if (e.target === lightbox) closeLightbox();
+  });
+
+  // Cerrar con la tecla Escape
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeLightbox();
+  });
+})();
