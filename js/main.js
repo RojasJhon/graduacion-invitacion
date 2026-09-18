@@ -160,3 +160,41 @@
     if (e.key === "Escape") closeLightbox();
   });
 })();
+
+// ===== Botón de confirmación por WhatsApp =====
+(function () {
+  const waButton = document.getElementById("whatsapp-button");
+  if (!waButton) return;
+
+  // 👇 CAMBIA el número por el tuyo, con código de país y SIN el símbolo +
+  // Ojo: el código de Bolivia es 591 (revisa si tu número lo tiene bien escrito)
+  const phone = "59173555357";
+  const message = "¡Hola! Quiero confirmar mi asistencia a tu graduación 🎓";
+
+  waButton.href = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+})();
+
+// ===== Música de fondo (botón flotante) =====
+(function () {
+  const musicBtn = document.getElementById("music-toggle");
+  const audio = document.getElementById("bg-audio");
+  if (!musicBtn || !audio) return;
+
+  let isPlaying = false;
+
+  musicBtn.addEventListener("click", () => {
+    if (!isPlaying) {
+      audio.play().catch(() => {
+        console.warn("No se pudo reproducir el audio. ¿Ya agregaste tu archivo en assets/audio/musica.mp3?");
+      });
+      musicBtn.textContent = "⏸";
+      musicBtn.classList.add("playing");
+      isPlaying = true;
+    } else {
+      audio.pause();
+      musicBtn.textContent = "🎵";
+      musicBtn.classList.remove("playing");
+      isPlaying = false;
+    }
+  });
+})();
