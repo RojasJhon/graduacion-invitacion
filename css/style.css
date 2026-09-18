@@ -35,6 +35,16 @@ body {
   text-align: center;
   padding: 2rem;
   overflow: hidden;
+  background: radial-gradient(ellipse at center, var(--color-bg-alt) 0%, var(--color-bg) 70%);
+}
+
+#particles-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
 }
 
 .hero-content {
@@ -98,4 +108,152 @@ body {
   text-transform: uppercase;
   font-size: clamp(0.8rem, 2vw, 1rem);
   color: var(--color-gold-light);
+}
+
+/* ===== Indicador de scroll ===== */
+.scroll-indicator {
+  position: absolute;
+  bottom: 2.2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 1;
+}
+
+.scroll-mouse {
+  width: 24px;
+  height: 38px;
+  border: 2px solid var(--color-gold);
+  border-radius: 14px;
+  position: relative;
+}
+
+.scroll-mouse::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: 4px;
+  height: 8px;
+  background: var(--color-gold);
+  border-radius: 2px;
+  transform: translateX(-50%);
+  animation: scroll-wheel 1.8s ease-in-out infinite;
+}
+
+@keyframes scroll-wheel {
+  0%   { opacity: 1; transform: translate(-50%, 0); }
+  70%  { opacity: 0; transform: translate(-50%, 12px); }
+  100% { opacity: 0; transform: translate(-50%, 12px); }
+}
+
+.scroll-label {
+  font-size: 0.7rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+/* ===== Separador ornamental ===== */
+.divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+.divider-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-gold), transparent);
+}
+
+.divider-diamond {
+  color: var(--color-gold);
+  font-size: 0.8rem;
+}
+
+/* ===== Sección de frase de graduación ===== */
+.quote-section {
+  padding: 6rem 1.5rem;
+  text-align: center;
+  background-color: var(--color-bg);
+}
+
+.quote-text {
+  font-family: var(--font-script);
+  font-size: clamp(1.4rem, 4vw, 2.2rem);
+  color: var(--color-text);
+  max-width: 700px;
+  margin: 2rem auto;
+  line-height: 1.5;
+}
+
+/* ===== Animación de aparición al hacer scroll ===== */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ===== Cuenta regresiva ===== */
+.countdown-section {
+  padding: 3rem 1.5rem 6rem;
+  text-align: center;
+  background-color: var(--color-bg);
+}
+
+.countdown-label {
+  font-size: 0.85rem;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  color: var(--color-gold-light);
+  margin-bottom: 2rem;
+}
+
+.countdown-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.countdown-card {
+  flex: 1 1 90px;
+  min-width: 80px;
+  padding: 1.4rem 0.5rem;
+  background: rgba(212, 175, 55, 0.06);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 12px;
+  backdrop-filter: blur(6px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.countdown-number {
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: clamp(1.8rem, 5vw, 2.6rem);
+  color: var(--color-gold);
+}
+
+.countdown-unit {
+  font-size: 0.65rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
 }

@@ -15,13 +15,59 @@
 <body>
 
   <section class="hero">
+    <canvas id="particles-canvas"></canvas>
     <div class="hero-content">
       <p class="hero-eyebrow">Estás invitado a celebrar</p>
       <h1 class="hero-title">Mi Graduación</h1>
       <p class="hero-name">[Nombre del Graduado/a]</p>
       <p class="hero-promo">Promoción [Año]</p>
     </div>
+
+    <div class="scroll-indicator">
+      <span class="scroll-mouse"></span>
+      <span class="scroll-label">Desliza</span>
+    </div>
   </section>
+
+  <section class="quote-section">
+    <div class="divider reveal">
+      <span class="divider-line"></span>
+      <span class="divider-diamond">◆</span>
+      <span class="divider-line"></span>
+    </div>
+  
+    <p class="quote-text reveal">
+      “[Escribe aquí tu frase o cita de graduación]”
+    </p>
+  
+    <div class="divider reveal">
+      <span class="divider-line"></span>
+      <span class="divider-diamond">◆</span>
+      <span class="divider-line"></span>
+    </div>
+  </section>
+
+    <section class="countdown-section">
+      <p class="countdown-label reveal">Faltan</p>
+      <div class="countdown-grid reveal">
+        <div class="countdown-card">
+          <span class="countdown-number" id="days">00</span>
+          <span class="countdown-unit">Días</span>
+        </div>
+        <div class="countdown-card">
+          <span class="countdown-number" id="hours">00</span>
+          <span class="countdown-unit">Horas</span>
+        </div>
+        <div class="countdown-card">
+          <span class="countdown-number" id="minutes">00</span>
+          <span class="countdown-unit">Minutos</span>
+        </div>
+        <div class="countdown-card">
+          <span class="countdown-number" id="seconds">00</span>
+          <span class="countdown-unit">Segundos</span>
+        </div>
+      </div>
+    </section>
 
   <script src="js/main.js"></script>
 </body>
