@@ -1,4 +1,18 @@
-/* Reset básico */
+/* ===== Variables de diseño ===== */
+:root {
+  --color-bg: #05070f;
+  --color-bg-alt: #0d1224;
+  --color-gold: #d4af37;
+  --color-gold-light: #f4e4a6;
+  --color-text: #f5f0e6;
+  --color-text-muted: #a9a4c9;
+
+  --font-title: "Playfair Display", serif;
+  --font-script: "Great Vibes", cursive;
+  --font-body: "Poppins", sans-serif;
+}
+
+/* ===== Reset básico ===== */
 * {
   margin: 0;
   padding: 0;
@@ -6,21 +20,82 @@
 }
 
 body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+}
+
+/* ===== Hero (portada) ===== */
+.hero {
+  position: relative;
   min-height: 100vh;
-  background-color: #0a0a12;
-  color: #f5f0e6;
-  font-family: sans-serif;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
+  padding: 2rem;
+  overflow: hidden;
 }
 
-.placeholder h1 {
-  font-size: 2rem;
+.hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-eyebrow {
+  font-family: var(--font-script);
+  font-size: clamp(1.5rem, 4vw, 2.2rem);
+  color: var(--color-text-muted);
   margin-bottom: 0.5rem;
 }
 
-.placeholder p {
-  color: #b8ab8a;
+.hero-title {
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: clamp(2.5rem, 8vw, 5rem);
+  letter-spacing: 1px;
+  margin-bottom: 1.2rem;
+
+  background: linear-gradient(
+    100deg,
+    #8a6d1f 0%,
+    #f4e4a6 22%,
+    #d4af37 40%,
+    #fdf6d8 50%,
+    #d4af37 60%,
+    #f4e4a6 78%,
+    #8a6d1f 100%
+  );
+  background-size: 250% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+
+  filter: drop-shadow(0 0 18px rgba(212, 175, 55, 0.45));
+  animation: shine 5s linear infinite;
+}
+
+@keyframes shine {
+  to {
+    background-position: 250% center;
+  }
+}
+
+.hero-name {
+  font-family: var(--font-title);
+  font-weight: 600;
+  font-size: clamp(1.2rem, 3vw, 1.8rem);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+}
+
+.hero-promo {
+  font-family: var(--font-body);
+  font-weight: 300;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  font-size: clamp(0.8rem, 2vw, 1rem);
+  color: var(--color-gold-light);
 }
