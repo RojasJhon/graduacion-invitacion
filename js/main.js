@@ -77,8 +77,9 @@
   }
 
   function drawConfetti() {
-    // Solo se dibuja/anima mientras el usuario está viendo la portada
-    if (window.scrollY > window.innerHeight * 0.95) return;
+    // Solo se dibuja/anima mientras el panel de portada está activo
+    const panelInicio = document.getElementById("panel-inicio");
+    if (!panelInicio || !panelInicio.classList.contains("active")) return;
 
     for (const c of confettiPieces) {
       ctx.save();
@@ -101,6 +102,10 @@
   }
 
   // ----- Fuegos artificiales (en TODA la página, grandes y brillantes) -----
+  function inHero() {
+    return window.scrollY < window.innerHeight * 0.95;
+  }
+
   function spawnFirework() {
     const x = width * (0.12 + Math.random() * 0.76);
     const apexY = height * (0.12 + Math.random() * 0.35);
@@ -112,27 +117,32 @@
       trail: [],
       exploded: false,
       particles: [],
+      small: inHero(), // si nace en la portada, será una explosión chica
     });
 
-    // Se disparan seguido: cada 1 a 2.4 segundos
-    const nextDelay = 1000 + Math.random() * 1400;
+    // En la portada: disparos más espaciados. En el resto: seguidos.
+    const nextDelay = inHero()
+      ? 4200 + Math.random() * 2600   // portada: cada 4.2 a 6.8s
+      : 1000 + Math.random() * 1400;  // resto: cada 1 a 2.4s
     setTimeout(spawnFirework, nextDelay);
   }
 
   function explode(fw) {
     // Cada partícula elige su propio color al azar → explosión multicolor
-    const count = 80 + Math.floor(Math.random() * 40);
+    const count = fw.small
+      ? 20 + Math.floor(Math.random() * 12)   // portada: explosión chica
+      : 80 + Math.floor(Math.random() * 40);  // resto: explosión grande
 
     for (let i = 0; i < count; i++) {
       const angle = (Math.PI * 2 * i) / count + Math.random() * 0.25;
-      const speed = 2.8 + Math.random() * 5.5;
+      const speed = (fw.small ? 1.6 : 2.8) + Math.random() * (fw.small ? 2.6 : 5.5);
       fw.particles.push({
         x: fw.x,
         y: fw.y,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
         alpha: 1,
-        radius: 2.2 + Math.random() * 2.2,
+        radius: (fw.small ? 1.3 : 2.2) + Math.random() * (fw.small ? 1.2 : 2.2),
         color: PALETTE[Math.floor(Math.random() * PALETTE.length)],
       });
     }
@@ -210,14 +220,17 @@
   draw();
 })();
 
-// ===== Botón "Ver detalles": baja a la sección de detalles del evento =====
+// ===== Botón "Ver detalles": cambia del panel de portada al panel de contenido =====
 (function () {
   const scrollBtn = document.getElementById("scroll-cta");
-  const target = document.getElementById("frase");
-  if (!scrollBtn || !target) return;
+  const panelInicio = document.getElementById("panel-inicio");
+  const panelDatos = document.getElementById("panel-datos");
+  if (!scrollBtn || !panelInicio || !panelDatos) return;
 
   scrollBtn.addEventListener("click", () => {
-    target.scrollIntoView({ behavior: "smooth" });
+    panelInicio.classList.remove("active");
+    panelDatos.classList.add("active");
+    window.scrollTo({ top: 0, behavior: "instant" });
   });
 })();
 
