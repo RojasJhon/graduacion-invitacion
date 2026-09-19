@@ -221,16 +221,36 @@
 })();
 
 // ===== Botón "Ver detalles": cambia del panel de portada al panel de contenido =====
+// ===== Botón "Ver detalles": destello dorado + cambio de panel =====
 (function () {
   const scrollBtn = document.getElementById("scroll-cta");
   const panelInicio = document.getElementById("panel-inicio");
   const panelDatos = document.getElementById("panel-datos");
-  if (!scrollBtn || !panelInicio || !panelDatos) return;
+  const flash = document.getElementById("flash-overlay");
+  if (!scrollBtn || !panelInicio || !panelDatos || !flash) return;
 
   scrollBtn.addEventListener("click", () => {
-    panelInicio.classList.remove("active");
-    panelDatos.classList.add("active");
-    window.scrollTo({ top: 0, behavior: "instant" });
+    // Fase 1: destello rápido (la pantalla se llena de luz dorada)
+    flash.style.transition = "opacity 0.15s ease-in";
+    flash.style.opacity = "1";
+
+    // Fase 2: en el punto máximo del destello, cambiamos de panel (queda oculto por la luz)
+        // Fase 2: en el punto máximo del destello, cambiamos de panel (queda oculto por la luz)
+    setTimeout(() => {
+      panelInicio.classList.remove("active");
+      panelDatos.classList.add("active");
+      window.scrollTo({ top: 0, behavior: "instant" });
+
+      // Iniciar la música automáticamente (aprovechando este clic del usuario)
+      const musicBtn = document.getElementById("music-toggle");
+      if (musicBtn && !musicBtn.classList.contains("playing")) {
+        musicBtn.click();
+      }
+
+      // Fase 3: el destello se apaga lentamente, revelando el contenido nuevo
+      flash.style.transition = "opacity 0.6s ease-out";
+      flash.style.opacity = "0";
+    }, 150);
   });
 })();
 
