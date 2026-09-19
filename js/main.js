@@ -6,7 +6,7 @@
   const ctx = canvas.getContext("2d");
   let width, height;
   let ambientParticles = [];
-  let confettiPieces = [];
+  let confettiLayers = [[], [], []];
   let fireworks = [];
 
   const PALETTE = [
@@ -18,6 +18,13 @@
     "186, 104, 200", // lila
     "129, 199, 132", // verde esmeralda
     "255, 179, 71",  // naranja suave
+  ];
+
+  // Config de profundidad: [lejos, medio, cerca]
+  const CONFETTI_LAYERS = [
+    { scale: 0.55, speedMul: 0.5, alphaMul: 0.45, blur: 2,   proportion: 0.4 },
+    { scale: 0.85, speedMul: 0.8, alphaMul: 0.75, blur: 0.8, proportion: 0.35 },
+    { scale: 1.25, speedMul: 1.3, alphaMul: 1,    blur: 0,   proportion: 0.25 },
   ];
 
   function resize() {
@@ -58,22 +65,29 @@
     }
   }
 
-  // ----- Confeti cayendo (SOLO visible mientras se ve la portada) -----
+  // ----- Confeti cayendo con profundidad (SOLO visible mientras se ve la portada) -----
   function createConfetti() {
-    const count = Math.floor((width * height) / 11000);
-    confettiPieces = Array.from({ length: count }, () => ({
-      x: Math.random() * width,
-      y: Math.random() * height,
-      width: 5 + Math.random() * 5,
-      height: 8 + Math.random() * 6,
-      color: PALETTE[Math.floor(Math.random() * PALETTE.length)],
-      alpha: 0.6 + Math.random() * 0.4,
-      speedY: 0.6 + Math.random() * 1.3,
-      swingSpeed: 0.015 + Math.random() * 0.02,
-      swingPhase: Math.random() * Math.PI * 2,
-      rotation: Math.random() * Math.PI * 2,
-      rotationSpeed: (Math.random() - 0.5) * 0.06,
-    }));
+    const totalCount = Math.floor((width * height) / 11000);
+    confettiLayers = [[], [], []];
+
+    CONFETTI_LAYERS.forEach((cfg, li) => {
+      const layerCount = Math.floor(totalCount * cfg.proportion);
+      for (let i = 0; i < layerCount; i++) {
+        confettiLayers[li].push({
+          x: Math.random() * width,
+          y: Math.random() * height,
+          width: (5 + Math.random() * 5) * cfg.scale,
+          height: (8 + Math.random() * 6) * cfg.scale,
+          color: PALETTE[Math.floor(Math.random() * PALETTE.length)],
+          alpha: (0.6 + Math.random() * 0.4) * cfg.alphaMul,
+          speedY: (0.6 + Math.random() * 1.3) * cfg.speedMul,
+          swingSpeed: 0.015 + Math.random() * 0.02,
+          swingPhase: Math.random() * Math.PI * 2,
+          rotation: Math.random() * Math.PI * 2,
+          rotationSpeed: (Math.random() - 0.5) * 0.06,
+        });
+      }
+    });
   }
 
   function drawConfetti() {
@@ -81,24 +95,31 @@
     const panelInicio = document.getElementById("panel-inicio");
     if (!panelInicio || !panelInicio.classList.contains("active")) return;
 
-    for (const c of confettiPieces) {
-      ctx.save();
-      ctx.translate(c.x, c.y);
-      ctx.rotate(c.rotation);
-      ctx.fillStyle = `rgba(${c.color}, ${c.alpha})`;
-      ctx.fillRect(-c.width / 2, -c.height / 2, c.width, c.height);
-      ctx.restore();
+    // Se dibuja de atrás hacia adelante: lejos → medio → cerca
+    CONFETTI_LAYERS.forEach((cfg, li) => {
+      ctx.filter = cfg.blur > 0 ? `blur(${cfg.blur}px)` : "none";
 
-      c.swingPhase += c.swingSpeed;
-      c.x += Math.sin(c.swingPhase) * 0.7;
-      c.y += c.speedY;
-      c.rotation += c.rotationSpeed;
+      for (const c of confettiLayers[li]) {
+        ctx.save();
+        ctx.translate(c.x, c.y);
+        ctx.rotate(c.rotation);
+        ctx.fillStyle = `rgba(${c.color}, ${c.alpha})`;
+        ctx.fillRect(-c.width / 2, -c.height / 2, c.width, c.height);
+        ctx.restore();
 
-      if (c.y > height + 15) {
-        c.y = -15;
-        c.x = Math.random() * width;
+        c.swingPhase += c.swingSpeed;
+        c.x += Math.sin(c.swingPhase) * 0.7;
+        c.y += c.speedY;
+        c.rotation += c.rotationSpeed;
+
+        if (c.y > height + 15) {
+          c.y = -15;
+          c.x = Math.random() * width;
+        }
       }
-    }
+    });
+
+    ctx.filter = "none"; // resetear para que no afecte fuegos artificiales/estrellas
   }
 
   // ----- Fuegos artificiales (en TODA la página, grandes y brillantes) -----
@@ -220,7 +241,6 @@
   draw();
 })();
 
-// ===== Botón "Ver detalles": cambia del panel de portada al panel de contenido =====
 // ===== Botón "Ver detalles": destello dorado + cambio de panel =====
 (function () {
   const scrollBtn = document.getElementById("scroll-cta");
@@ -235,7 +255,6 @@
     flash.style.opacity = "1";
 
     // Fase 2: en el punto máximo del destello, cambiamos de panel (queda oculto por la luz)
-        // Fase 2: en el punto máximo del destello, cambiamos de panel (queda oculto por la luz)
     setTimeout(() => {
       panelInicio.classList.remove("active");
       panelDatos.classList.add("active");
