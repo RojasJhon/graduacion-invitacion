@@ -1,4 +1,4 @@
-// ===== Fondo animado de toda la página: estrellas + confeti (solo portada) + fuegos artificiales =====
+// ===== Fondo animado (OPTIMIZADO para rendimiento): estrellas + confeti + fuegos artificiales =====
 (function () {
   const canvas = document.getElementById("fireworks-canvas");
   if (!canvas) return;
@@ -9,6 +9,9 @@
   let confettiInicio = [[], [], []]; // multicolor, solo en la portada
   let confettiDatos = [[], [], []];  // dorado, solo en el panel de detalles
   let fireworks = [];
+
+  // En pantallas chicas (celulares) bajamos la densidad de todo para que rinda mejor
+  const isSmallScreen = window.innerWidth < 640;
 
   const PALETTE = [
     "212, 175, 55",  // dorado
@@ -28,11 +31,14 @@
     "255, 223, 128", // dorado suave
   ];
 
-  // Config de profundidad: [lejos, medio, cerca] — diferencias marcadas a propósito
+  // Config de profundidad: [lejos, medio, cerca]
+  // Nota: ya NO usamos blur() real (es carísimo en canvas); la profundidad
+  // se logra solo con tamaño, velocidad y opacidad, que es igual de efectivo
+  // visualmente y muchísimo más liviano.
   const CONFETTI_LAYERS = [
-    { scale: 0.4, speedMul: 0.4, alphaMul: 0.35, blur: 3, proportion: 0.35 },
-    { scale: 0.9, speedMul: 0.85, alphaMul: 0.8, blur: 1, proportion: 0.35 },
-    { scale: 1.6, speedMul: 1.6, alphaMul: 1,    blur: 0, proportion: 0.3 },
+    { scale: 0.45, speedMul: 0.45, alphaMul: 0.4, proportion: 0.35 },
+    { scale: 0.9,  speedMul: 0.85, alphaMul: 0.75, proportion: 0.35 },
+    { scale: 1.5,  speedMul: 1.5,  alphaMul: 1,    proportion: 0.3 },
   ];
 
   function resize() {
@@ -42,7 +48,8 @@
 
   // ----- Estrellitas de fondo (ambiente, en toda la página) -----
   function createAmbientParticles() {
-    const count = Math.floor((width * height) / 16000);
+    const divisor = isSmallScreen ? 26000 : 16000;
+    const count = Math.floor((width * height) / divisor);
     ambientParticles = Array.from({ length: count }, () => ({
       x: Math.random() * width,
       y: Math.random() * height,
@@ -73,9 +80,10 @@
     }
   }
 
-  // ----- Confeti con profundidad (genérico: recibe su propia paleta de colores) -----
+  // ----- Confeti con profundidad (sin blur real, solo tamaño/velocidad/opacidad) -----
   function buildConfettiLayers(palette) {
-    const totalCount = Math.floor((width * height) / 11000);
+    const divisor = isSmallScreen ? 18000 : 11000;
+    const totalCount = Math.floor((width * height) / divisor);
     const layers = [[], [], []];
 
     CONFETTI_LAYERS.forEach((cfg, li) => {
@@ -106,10 +114,8 @@
   }
 
   function drawConfettiLayers(layers) {
-    // Se dibuja de atrás hacia adelante: lejos → medio → cerca
-    CONFETTI_LAYERS.forEach((cfg, li) => {
-      ctx.filter = cfg.blur > 0 ? `blur(${cfg.blur}px)` : "none";
-
+    // Se dibuja de atrás hacia adelante: lejos → medio → cerca (sin ctx.filter)
+    for (let li = 0; li < layers.length; li++) {
       for (const c of layers[li]) {
         ctx.save();
         ctx.translate(c.x, c.y);
@@ -128,9 +134,7 @@
           c.x = Math.random() * width;
         }
       }
-    });
-
-    ctx.filter = "none"; // resetear para que no afecte fuegos artificiales/estrellas
+    }
   }
 
   function drawConfetti() {
@@ -144,7 +148,7 @@
     }
   }
 
-  // ----- Fuegos artificiales (en TODA la página, grandes y brillantes) -----
+  // ----- Fuegos artificiales (glow SIN shadowBlur: mucho más liviano) -----
   function inHero() {
     return window.scrollY < window.innerHeight * 0.95;
   }
@@ -160,32 +164,30 @@
       trail: [],
       exploded: false,
       particles: [],
-      small: inHero(), // si nace en la portada, será una explosión chica
+      small: inHero(),
     });
 
-    // En la portada: disparos más espaciados. En el resto: seguidos.
     const nextDelay = inHero()
-      ? 4200 + Math.random() * 2600   // portada: cada 4.2 a 6.8s
-      : 1000 + Math.random() * 1400;  // resto: cada 1 a 2.4s
+      ? 4200 + Math.random() * 2600
+      : (isSmallScreen ? 1800 : 1200) + Math.random() * 1600;
     setTimeout(spawnFirework, nextDelay);
   }
 
   function explode(fw) {
-    // Cada partícula elige su propio color al azar → explosión multicolor
-    const count = fw.small
-      ? 20 + Math.floor(Math.random() * 12)   // portada: explosión chica
-      : 80 + Math.floor(Math.random() * 40);  // resto: explosión grande
+    const baseCount = fw.small
+      ? 16 + Math.floor(Math.random() * 10)
+      : (isSmallScreen ? 32 : 55) + Math.floor(Math.random() * 20);
 
-    for (let i = 0; i < count; i++) {
-      const angle = (Math.PI * 2 * i) / count + Math.random() * 0.25;
-      const speed = (fw.small ? 1.6 : 2.8) + Math.random() * (fw.small ? 2.6 : 5.5);
+    for (let i = 0; i < baseCount; i++) {
+      const angle = (Math.PI * 2 * i) / baseCount + Math.random() * 0.25;
+      const speed = (fw.small ? 1.6 : 2.6) + Math.random() * (fw.small ? 2.2 : 4.5);
       fw.particles.push({
         x: fw.x,
         y: fw.y,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
         alpha: 1,
-        radius: (fw.small ? 1.3 : 2.2) + Math.random() * (fw.small ? 1.2 : 2.2),
+        radius: (fw.small ? 1.3 : 2) + Math.random() * (fw.small ? 1 : 1.8),
         color: PALETTE[Math.floor(Math.random() * PALETTE.length)],
       });
     }
@@ -197,9 +199,8 @@
       const fw = fireworks[f];
 
       if (!fw.exploded) {
-        // Estela mientras sube
         fw.trail.push({ x: fw.x, y: fw.y, alpha: 1 });
-        if (fw.trail.length > 14) fw.trail.shift();
+        if (fw.trail.length > 10) fw.trail.shift();
 
         for (const t of fw.trail) {
           ctx.beginPath();
@@ -221,17 +222,21 @@
 
           p.x += p.vx;
           p.y += p.vy;
-          p.vx *= 0.985; // fricción del aire, hace la explosión más "redonda"
-          p.vy += 0.04; // gravedad suave
+          p.vx *= 0.985;
+          p.vy += 0.04;
           p.alpha *= 0.965;
 
+          // Halo suave (sin shadowBlur): círculo grande y tenue detrás...
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius * 2.2, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${p.color}, ${p.alpha * 0.22})`;
+          ctx.fill();
+
+          // ...y el núcleo brillante encima. Mismo efecto visual, sin el costo de shadowBlur.
           ctx.beginPath();
           ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
           ctx.fillStyle = `rgba(${p.color}, ${p.alpha})`;
-          ctx.shadowColor = `rgba(${p.color}, ${Math.min(p.alpha + 0.2, 1)})`;
-          ctx.shadowBlur = 14;
           ctx.fill();
-          ctx.shadowBlur = 0;
         }
         if (!alive) fireworks.splice(f, 1);
       }
@@ -252,7 +257,7 @@
     resize();
     createAmbientParticles();
     createConfetti();
-    setTimeout(spawnFirework, 700); // primer fuego artificial
+    setTimeout(spawnFirework, 700);
   }
 
   // Pausar/reanudar el fondo animado según si la pestaña está visible (ahorra batería/CPU)
@@ -284,23 +289,19 @@
   if (!scrollBtn || !panelInicio || !panelDatos || !flash) return;
 
   scrollBtn.addEventListener("click", () => {
-    // Fase 1: destello rápido (la pantalla se llena de luz dorada)
     flash.style.transition = "opacity 0.15s ease-in";
     flash.style.opacity = "1";
 
-    // Fase 2: en el punto máximo del destello, cambiamos de panel (queda oculto por la luz)
     setTimeout(() => {
       panelInicio.classList.remove("active");
       panelDatos.classList.add("active");
       window.scrollTo({ top: 0, behavior: "instant" });
 
-      // Iniciar la música automáticamente (aprovechando este clic del usuario)
       const musicBtn = document.getElementById("music-toggle");
       if (musicBtn && !musicBtn.classList.contains("playing")) {
         musicBtn.click();
       }
 
-      // Fase 3: el destello se apaga lentamente, revelando el contenido nuevo
       flash.style.transition = "opacity 0.6s ease-out";
       flash.style.opacity = "0";
     }, 150);
@@ -317,7 +318,7 @@
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
           entry.target.classList.add("visible");
-          observer.unobserve(entry.target); // ya apareció, no repetir
+          observer.unobserve(entry.target);
         }
       });
     },
@@ -337,7 +338,7 @@
   const minutesEl = document.getElementById("minutes");
   const secondsEl = document.getElementById("seconds");
 
-  if (!daysEl) return; // esta sección no existe en la página, no hacer nada
+  if (!daysEl) return;
 
   function pad(num) {
     return String(num).padStart(2, "0");
@@ -395,12 +396,10 @@
 
   closeBtn.addEventListener("click", closeLightbox);
 
-  // Cerrar al hacer clic fuera de la imagen (en el fondo oscuro)
   lightbox.addEventListener("click", (e) => {
     if (e.target === lightbox) closeLightbox();
   });
 
-  // Cerrar con la tecla Escape
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeLightbox();
   });
@@ -412,7 +411,6 @@
   if (!waButton) return;
 
   // 👇 CAMBIA el número por el tuyo, con código de país y SIN el símbolo +
-  // Ojo: el código de Bolivia es 591 (revisa si tu número lo tiene bien escrito)
   const phone = "59173555357";
   const message = "¡Hola! Quiero confirmar mi asistencia a tu graduación 🎓";
 
