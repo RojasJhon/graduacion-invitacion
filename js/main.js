@@ -238,12 +238,14 @@
     }
   }
 
+  let animationId = null;
+
   function draw() {
     ctx.clearRect(0, 0, width, height);
     drawAmbient();
     drawConfetti();
     updateAndDrawFireworks();
-    requestAnimationFrame(draw);
+    animationId = requestAnimationFrame(draw);
   }
 
   function init() {
@@ -252,6 +254,16 @@
     createConfetti();
     setTimeout(spawnFirework, 700); // primer fuego artificial
   }
+
+  // Pausar/reanudar el fondo animado según si la pestaña está visible (ahorra batería/CPU)
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      if (animationId) cancelAnimationFrame(animationId);
+      animationId = null;
+    } else if (!animationId) {
+      draw();
+    }
+  });
 
   window.addEventListener("resize", () => {
     resize();
