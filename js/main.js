@@ -6,7 +6,8 @@
   const ctx = canvas.getContext("2d");
   let width, height;
   let ambientParticles = [];
-  let confettiLayers = [[], [], []];
+  let confettiInicio = [[], [], []]; // multicolor, solo en la portada
+  let confettiDatos = [[], [], []];  // dorado, solo en el panel de detalles
   let fireworks = [];
 
   const PALETTE = [
@@ -20,11 +21,18 @@
     "255, 179, 71",  // naranja suave
   ];
 
-  // Config de profundidad: [lejos, medio, cerca]
+  const GOLD_PALETTE = [
+    "212, 175, 55",  // dorado
+    "244, 228, 166", // dorado claro
+    "184, 134, 11",  // dorado oscuro
+    "255, 223, 128", // dorado suave
+  ];
+
+  // Config de profundidad: [lejos, medio, cerca] — diferencias marcadas a propósito
   const CONFETTI_LAYERS = [
-    { scale: 0.55, speedMul: 0.5, alphaMul: 0.45, blur: 2,   proportion: 0.4 },
-    { scale: 0.85, speedMul: 0.8, alphaMul: 0.75, blur: 0.8, proportion: 0.35 },
-    { scale: 1.25, speedMul: 1.3, alphaMul: 1,    blur: 0,   proportion: 0.25 },
+    { scale: 0.4, speedMul: 0.4, alphaMul: 0.35, blur: 3, proportion: 0.35 },
+    { scale: 0.9, speedMul: 0.85, alphaMul: 0.8, blur: 1, proportion: 0.35 },
+    { scale: 1.6, speedMul: 1.6, alphaMul: 1,    blur: 0, proportion: 0.3 },
   ];
 
   function resize() {
@@ -65,20 +73,20 @@
     }
   }
 
-  // ----- Confeti cayendo con profundidad (SOLO visible mientras se ve la portada) -----
-  function createConfetti() {
+  // ----- Confeti con profundidad (genérico: recibe su propia paleta de colores) -----
+  function buildConfettiLayers(palette) {
     const totalCount = Math.floor((width * height) / 11000);
-    confettiLayers = [[], [], []];
+    const layers = [[], [], []];
 
     CONFETTI_LAYERS.forEach((cfg, li) => {
       const layerCount = Math.floor(totalCount * cfg.proportion);
       for (let i = 0; i < layerCount; i++) {
-        confettiLayers[li].push({
+        layers[li].push({
           x: Math.random() * width,
           y: Math.random() * height,
           width: (5 + Math.random() * 5) * cfg.scale,
           height: (8 + Math.random() * 6) * cfg.scale,
-          color: PALETTE[Math.floor(Math.random() * PALETTE.length)],
+          color: palette[Math.floor(Math.random() * palette.length)],
           alpha: (0.6 + Math.random() * 0.4) * cfg.alphaMul,
           speedY: (0.6 + Math.random() * 1.3) * cfg.speedMul,
           swingSpeed: 0.015 + Math.random() * 0.02,
@@ -88,18 +96,21 @@
         });
       }
     });
+
+    return layers;
   }
 
-  function drawConfetti() {
-    // Solo se dibuja/anima mientras el panel de portada está activo
-    const panelInicio = document.getElementById("panel-inicio");
-    if (!panelInicio || !panelInicio.classList.contains("active")) return;
+  function createConfetti() {
+    confettiInicio = buildConfettiLayers(PALETTE);
+    confettiDatos = buildConfettiLayers(GOLD_PALETTE);
+  }
 
+  function drawConfettiLayers(layers) {
     // Se dibuja de atrás hacia adelante: lejos → medio → cerca
     CONFETTI_LAYERS.forEach((cfg, li) => {
       ctx.filter = cfg.blur > 0 ? `blur(${cfg.blur}px)` : "none";
 
-      for (const c of confettiLayers[li]) {
+      for (const c of layers[li]) {
         ctx.save();
         ctx.translate(c.x, c.y);
         ctx.rotate(c.rotation);
@@ -120,6 +131,17 @@
     });
 
     ctx.filter = "none"; // resetear para que no afecte fuegos artificiales/estrellas
+  }
+
+  function drawConfetti() {
+    const panelInicio = document.getElementById("panel-inicio");
+    const panelDatos = document.getElementById("panel-datos");
+
+    if (panelInicio && panelInicio.classList.contains("active")) {
+      drawConfettiLayers(confettiInicio); // multicolor
+    } else if (panelDatos && panelDatos.classList.contains("active")) {
+      drawConfettiLayers(confettiDatos); // dorado
+    }
   }
 
   // ----- Fuegos artificiales (en TODA la página, grandes y brillantes) -----
