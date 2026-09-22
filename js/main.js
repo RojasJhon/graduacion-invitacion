@@ -542,8 +542,8 @@
   const copyLabel = document.getElementById("copy-link-label");
   if (!qrContainer || !copyButton || !copyLabel) return;
 
-  // Si deseas que el QR siempre apunte a una URL específica, colócala aquí.
-  const configuredInvitationUrl = "";
+  // URL pública que compartirán el código QR y el botón "Copiar enlace".
+  const configuredInvitationUrl = "https://mi-graduacion-2026gr.netlify.app/";
   const currentUrl = new URL(window.location.href);
   currentUrl.hash = "";
   const invitationUrl = configuredInvitationUrl || currentUrl.href;
