@@ -14,6 +14,11 @@
 </head>
 <body>
 
+  <div class="aurora-background" aria-hidden="true">
+    <span class="aurora aurora-blue"></span>
+    <span class="aurora aurora-violet"></span>
+    <span class="aurora aurora-gold"></span>
+  </div>
   <canvas id="fireworks-canvas"></canvas>
   <div id="grain-overlay"></div>
   <div id="flash-overlay"></div>
@@ -54,19 +59,19 @@
     <section class="countdown-section">
       <p class="countdown-label reveal">Faltan</p>
       <div class="countdown-grid reveal">
-        <div class="countdown-card">
+        <div class="countdown-card tilt-card">
           <span class="countdown-number" id="days">00</span>
           <span class="countdown-unit">Días</span>
         </div>
-        <div class="countdown-card">
+        <div class="countdown-card tilt-card">
           <span class="countdown-number" id="hours">00</span>
           <span class="countdown-unit">Horas</span>
         </div>
-        <div class="countdown-card">
+        <div class="countdown-card tilt-card">
           <span class="countdown-number" id="minutes">00</span>
           <span class="countdown-unit">Minutos</span>
         </div>
-        <div class="countdown-card">
+        <div class="countdown-card tilt-card">
           <span class="countdown-number" id="seconds">00</span>
           <span class="countdown-unit">Segundos</span>
         </div>
@@ -78,32 +83,32 @@
       <h2 class="gallery-title reveal">Galería</h2>
 
       <div class="gallery-grid">
-        <div class="gallery-item reveal"><img src="assets/images/foto-1.svg" alt="Foto 1" /></div>
-        <div class="gallery-item reveal"><img src="assets/images/foto-2.svg" alt="Foto 2" /></div>
-        <div class="gallery-item reveal"><img src="assets/images/foto-3.svg" alt="Foto 3" /></div>
-        <div class="gallery-item reveal"><img src="assets/images/foto-4.svg" alt="Foto 4" /></div>
-        <div class="gallery-item reveal"><img src="assets/images/foto-5.svg" alt="Foto 5" /></div>
-        <div class="gallery-item reveal"><img src="assets/images/foto-6.svg" alt="Foto 6" /></div>
-        <div class="gallery-item reveal"><img src="assets/images/foto-7.svg" alt="Foto 7" /></div>
-        <div class="gallery-item reveal"><img src="assets/images/foto-8.svg" alt="Foto 8" /></div>
-        <div class="gallery-item reveal"><img src="assets/images/foto-9.svg" alt="Foto 9" /></div>
-        <div class="gallery-item reveal"><img src="assets/images/foto-10.svg" alt="Foto 10" /></div>
+        <div class="gallery-item reveal"><span class="gallery-media"><img src="assets/images/foto-1.svg" alt="Foto 1" /></span></div>
+        <div class="gallery-item reveal"><span class="gallery-media"><img src="assets/images/foto-2.svg" alt="Foto 2" /></span></div>
+        <div class="gallery-item reveal"><span class="gallery-media"><img src="assets/images/foto-3.svg" alt="Foto 3" /></span></div>
+        <div class="gallery-item reveal"><span class="gallery-media"><img src="assets/images/foto-4.svg" alt="Foto 4" /></span></div>
+        <div class="gallery-item reveal"><span class="gallery-media"><img src="assets/images/foto-5.svg" alt="Foto 5" /></span></div>
+        <div class="gallery-item reveal"><span class="gallery-media"><img src="assets/images/foto-6.svg" alt="Foto 6" /></span></div>
+        <div class="gallery-item reveal"><span class="gallery-media"><img src="assets/images/foto-7.svg" alt="Foto 7" /></span></div>
+        <div class="gallery-item reveal"><span class="gallery-media"><img src="assets/images/foto-8.svg" alt="Foto 8" /></span></div>
+        <div class="gallery-item reveal"><span class="gallery-media"><img src="assets/images/foto-9.svg" alt="Foto 9" /></span></div>
+        <div class="gallery-item reveal"><span class="gallery-media"><img src="assets/images/foto-10.svg" alt="Foto 10" /></span></div>
       </div>
     </section>
 
     <section class="details-section">
       <div class="details-grid">
-        <div class="details-card reveal">
+        <div class="details-card tilt-card reveal">
           <span class="details-icon">📅</span>
           <span class="details-label">Fecha</span>
           <span class="details-value">[Día, Fecha]</span>
         </div>
-        <div class="details-card reveal">
+        <div class="details-card tilt-card reveal">
           <span class="details-icon">🕖</span>
           <span class="details-label">Hora</span>
           <span class="details-value">[Hora del evento]</span>
         </div>
-        <div class="details-card reveal">
+        <div class="details-card tilt-card reveal">
           <span class="details-icon">📍</span>
           <span class="details-label">Lugar</span>
           <span class="details-value">[Nombre del lugar]</span>
@@ -145,9 +150,68 @@
         Tu presencia es el mejor regalo que puedo recibir en este día tan especial.
       </p>
 
-      <a href="#" id="whatsapp-button" target="_blank" rel="noopener" class="whatsapp-button reveal">
-        💬 Confirmar asistencia
-      </a>
+      <form class="rsvp-form tilt-card reveal" id="rsvp-form" novalidate>
+        <div class="rsvp-field">
+          <label for="guest-name">Tu nombre</label>
+          <div class="rsvp-input-wrapper">
+            <span class="rsvp-input-icon" aria-hidden="true">✦</span>
+            <input
+              type="text"
+              id="guest-name"
+              name="guestName"
+              placeholder="Escribe tu nombre completo"
+              autocomplete="name"
+              maxlength="80"
+              aria-describedby="guest-name-error"
+              required
+            />
+          </div>
+          <p class="rsvp-error" id="guest-name-error" role="alert" aria-live="polite"></p>
+        </div>
+
+        <fieldset class="attendance-fieldset">
+          <legend>¿Podrás acompañarnos?</legend>
+          <div class="attendance-options">
+            <label class="attendance-option">
+              <input type="radio" name="attendance" value="yes" />
+              <span class="attendance-option-content">
+                <span class="attendance-icon" aria-hidden="true">✓</span>
+                <span>Sí asistiré</span>
+              </span>
+            </label>
+            <label class="attendance-option">
+              <input type="radio" name="attendance" value="no" />
+              <span class="attendance-option-content">
+                <span class="attendance-icon" aria-hidden="true">×</span>
+                <span>No podré asistir</span>
+              </span>
+            </label>
+          </div>
+          <p class="rsvp-error" id="attendance-error" role="alert" aria-live="polite"></p>
+        </fieldset>
+
+        <button type="submit" id="whatsapp-button" class="whatsapp-button">
+          <span class="whatsapp-button-icon" aria-hidden="true">💬</span>
+          <span class="whatsapp-button-label">Confirmar por WhatsApp</span>
+        </button>
+
+        <p class="rsvp-help">Se abrirá WhatsApp con tu confirmación lista para enviar.</p>
+      </form>
+
+      <div class="qr-card tilt-card reveal">
+        <div class="qr-copy">
+          <span class="qr-eyebrow">Comparte la invitación</span>
+          <h3>Escanea el código QR</h3>
+          <p>Apunta la cámara de tu celular para abrir esta invitación.</p>
+          <button type="button" class="copy-link-button" id="copy-invitation-link">
+            <span aria-hidden="true">↗</span>
+            <span id="copy-link-label">Copiar enlace</span>
+          </button>
+        </div>
+        <div class="qr-frame">
+          <div id="invitation-qr" aria-label="Código QR de la invitación"></div>
+        </div>
+      </div>
 
       <p class="rsvp-signature reveal">[Nombre del Graduado/a]</p>
     </section>
@@ -163,6 +227,12 @@
     <img src="" alt="" id="lightbox-img" />
   </div>
 
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"
+    integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer">
+  </script>
   <script src="js/main.js"></script>
 </body>
 </html>

@@ -280,7 +280,7 @@
   draw();
 })();
 
-// ===== Botón "Ver detalles": destello dorado + cambio de panel =====
+// ===== Botón "Ver detalles": View Transition + fallback con destello =====
 (function () {
   const scrollBtn = document.getElementById("scroll-cta");
   const panelInicio = document.getElementById("panel-inicio");
@@ -288,23 +288,55 @@
   const flash = document.getElementById("flash-overlay");
   if (!scrollBtn || !panelInicio || !panelDatos || !flash) return;
 
-  scrollBtn.addEventListener("click", () => {
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function startMusic() {
+    const musicBtn = document.getElementById("music-toggle");
+    if (musicBtn && !musicBtn.classList.contains("playing")) {
+      musicBtn.click();
+    }
+  }
+
+  function showInvitation() {
+    panelInicio.classList.remove("active");
+    panelDatos.classList.add("active");
+    panelDatos.querySelectorAll(".quote-section .reveal").forEach((element) => {
+      element.classList.add("visible");
+    });
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }
+
+  function showWithFlashFallback() {
     flash.style.transition = "opacity 0.15s ease-in";
     flash.style.opacity = "1";
 
     setTimeout(() => {
-      panelInicio.classList.remove("active");
-      panelDatos.classList.add("active");
-      window.scrollTo({ top: 0, behavior: "instant" });
-
-      const musicBtn = document.getElementById("music-toggle");
-      if (musicBtn && !musicBtn.classList.contains("playing")) {
-        musicBtn.click();
-      }
+      showInvitation();
 
       flash.style.transition = "opacity 0.6s ease-out";
       flash.style.opacity = "0";
     }, 150);
+  }
+
+  scrollBtn.addEventListener("click", () => {
+    startMusic();
+
+    if (prefersReducedMotion) {
+      showInvitation();
+      return;
+    }
+
+    if (typeof document.startViewTransition === "function") {
+      document.documentElement.classList.add("is-view-transitioning");
+      panelDatos.classList.add("view-transition-entered");
+      const transition = document.startViewTransition(showInvitation);
+      transition.finished.finally(() => {
+        document.documentElement.classList.remove("is-view-transitioning");
+      });
+      return;
+    }
+
+    showWithFlashFallback();
   });
 })();
 
@@ -405,16 +437,189 @@
   });
 })();
 
-// ===== Botón de confirmación por WhatsApp =====
+// ===== Formulario de confirmación por WhatsApp =====
 (function () {
+  const rsvpForm = document.getElementById("rsvp-form");
+  const guestNameInput = document.getElementById("guest-name");
+  const guestNameError = document.getElementById("guest-name-error");
+  const attendanceOptions = document.querySelectorAll('input[name="attendance"]');
+  const attendanceGroup = document.querySelector(".attendance-options");
+  const attendanceError = document.getElementById("attendance-error");
   const waButton = document.getElementById("whatsapp-button");
-  if (!waButton) return;
+  const buttonIcon = waButton?.querySelector(".whatsapp-button-icon");
+  const buttonLabel = waButton?.querySelector(".whatsapp-button-label");
+
+  if (
+    !rsvpForm ||
+    !guestNameInput ||
+    !guestNameError ||
+    !attendanceOptions.length ||
+    !attendanceGroup ||
+    !attendanceError ||
+    !waButton ||
+    !buttonIcon ||
+    !buttonLabel
+  ) return;
 
   // 👇 CAMBIA el número por el tuyo, con código de país y SIN el símbolo +
   const phone = "59173555357";
-  const message = "¡Hola! Quiero confirmar mi asistencia a tu graduación 🎓";
+  const defaultButtonIcon = buttonIcon.textContent;
+  const defaultButtonLabel = buttonLabel.textContent;
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  waButton.href = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+  function showNameError(message) {
+    guestNameError.textContent = message;
+    guestNameInput.setAttribute("aria-invalid", "true");
+    guestNameInput.focus();
+  }
+
+  function clearNameError() {
+    guestNameError.textContent = "";
+    guestNameInput.removeAttribute("aria-invalid");
+  }
+
+  function clearAttendanceError() {
+    attendanceError.textContent = "";
+    attendanceGroup.removeAttribute("aria-invalid");
+  }
+
+  function resetConfirmationState() {
+    rsvpForm.classList.remove("is-confirming");
+    waButton.disabled = false;
+    buttonIcon.textContent = defaultButtonIcon;
+    buttonLabel.textContent = defaultButtonLabel;
+  }
+
+  guestNameInput.addEventListener("input", clearNameError);
+  attendanceOptions.forEach((option) => {
+    option.addEventListener("change", clearAttendanceError);
+  });
+  window.addEventListener("pageshow", resetConfirmationState);
+
+  rsvpForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const guestName = guestNameInput.value.trim().replace(/\s+/g, " ");
+    const selectedAttendance = document.querySelector('input[name="attendance"]:checked');
+
+    if (!guestName) {
+      showNameError("Por favor, escribe tu nombre para confirmar.");
+      return;
+    }
+
+    clearNameError();
+
+    if (!selectedAttendance) {
+      attendanceError.textContent = "Selecciona una de las dos opciones.";
+      attendanceGroup.setAttribute("aria-invalid", "true");
+      attendanceOptions[0].focus();
+      return;
+    }
+
+    clearAttendanceError();
+
+    const isAttending = selectedAttendance.value === "yes";
+    const message = isAttending
+      ? `¡Hola! Soy ${guestName} y confirmo que sí asistiré a tu graduación 🎓✨`
+      : `¡Hola! Soy ${guestName}. Muchas gracias por la invitación, pero no podré asistir a tu graduación.`;
+    const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+
+    rsvpForm.classList.add("is-confirming");
+    waButton.disabled = true;
+    buttonIcon.textContent = "✓";
+    buttonLabel.textContent = isAttending ? "¡Asistencia confirmada!" : "¡Respuesta preparada!";
+
+    window.setTimeout(() => {
+      window.location.href = whatsappUrl;
+    }, prefersReducedMotion ? 150 : 850);
+  });
+})();
+
+// ===== Código QR y copia del enlace de la invitación =====
+(function () {
+  const qrContainer = document.getElementById("invitation-qr");
+  const copyButton = document.getElementById("copy-invitation-link");
+  const copyLabel = document.getElementById("copy-link-label");
+  if (!qrContainer || !copyButton || !copyLabel) return;
+
+  // Si deseas que el QR siempre apunte a una URL específica, colócala aquí.
+  const configuredInvitationUrl = "";
+  const currentUrl = new URL(window.location.href);
+  currentUrl.hash = "";
+  const invitationUrl = configuredInvitationUrl || currentUrl.href;
+
+  if (typeof window.QRCode === "function") {
+    new window.QRCode(qrContainer, {
+      text: invitationUrl,
+      width: 148,
+      height: 148,
+      colorDark: "#080b16",
+      colorLight: "#f8f4e8",
+      correctLevel: window.QRCode.CorrectLevel.H,
+    });
+  } else {
+    qrContainer.innerHTML = '<span class="qr-unavailable">No se pudo generar el código QR.</span>';
+  }
+
+  async function copyInvitationUrl() {
+    try {
+      await navigator.clipboard.writeText(invitationUrl);
+    } catch (error) {
+      const temporaryInput = document.createElement("input");
+      temporaryInput.value = invitationUrl;
+      temporaryInput.setAttribute("readonly", "");
+      temporaryInput.style.position = "fixed";
+      temporaryInput.style.opacity = "0";
+      document.body.appendChild(temporaryInput);
+      temporaryInput.select();
+      document.execCommand("copy");
+      temporaryInput.remove();
+    }
+
+    copyLabel.textContent = "¡Enlace copiado!";
+    window.setTimeout(() => {
+      copyLabel.textContent = "Copiar enlace";
+    }, 1800);
+  }
+
+  copyButton.addEventListener("click", copyInvitationUrl);
+})();
+
+// ===== Inclinación 3D sutil para tarjetas (solo escritorio) =====
+(function () {
+  const supportsFinePointer = window.matchMedia("(hover: hover) and (pointer: fine) and (min-width: 769px)").matches;
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!supportsFinePointer || prefersReducedMotion) return;
+
+  document.querySelectorAll(".tilt-card").forEach((card) => {
+    let animationFrame = null;
+    let pointerX = 0;
+    let pointerY = 0;
+
+    function updateTilt() {
+      const rect = card.getBoundingClientRect();
+      const normalizedX = (pointerX - rect.left) / rect.width - 0.5;
+      const normalizedY = (pointerY - rect.top) / rect.height - 0.5;
+      const strength = 4;
+
+      card.style.setProperty("--tilt-x", `${(-normalizedY * strength).toFixed(2)}deg`);
+      card.style.setProperty("--tilt-y", `${(normalizedX * strength).toFixed(2)}deg`);
+      animationFrame = null;
+    }
+
+    card.addEventListener("pointermove", (event) => {
+      pointerX = event.clientX;
+      pointerY = event.clientY;
+      if (!animationFrame) animationFrame = requestAnimationFrame(updateTilt);
+    });
+
+    card.addEventListener("pointerleave", () => {
+      if (animationFrame) cancelAnimationFrame(animationFrame);
+      animationFrame = null;
+      card.style.setProperty("--tilt-x", "0deg");
+      card.style.setProperty("--tilt-y", "0deg");
+    });
+  });
 })();
 
 // ===== Música de fondo (botón flotante) =====
