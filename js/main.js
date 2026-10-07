@@ -4,6 +4,9 @@
   if (!canvas) return;
 
   const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let fireworkTimer = null;
   let width, height;
   let ambientParticles = [];
   let confettiInicio = [[], [], []]; // multicolor, solo en la portada
@@ -154,6 +157,7 @@
   }
 
   function spawnFirework() {
+    if (document.hidden || motionPreference.matches) return;
     const x = width * (0.12 + Math.random() * 0.76);
     const apexY = height * (0.12 + Math.random() * 0.35);
     fireworks.push({
@@ -170,7 +174,7 @@
     const nextDelay = inHero()
       ? 4200 + Math.random() * 2600
       : (isSmallScreen ? 1800 : 1200) + Math.random() * 1600;
-    setTimeout(spawnFirework, nextDelay);
+    fireworkTimer = setTimeout(spawnFirework, nextDelay);
   }
 
   function explode(fw) {
@@ -246,6 +250,11 @@
   let animationId = null;
 
   function draw() {
+    if (document.hidden || motionPreference.matches) {
+      animationId = null;
+      ctx.clearRect(0, 0, width, height);
+      return;
+    }
     ctx.clearRect(0, 0, width, height);
     drawAmbient();
     drawConfetti();
@@ -257,18 +266,23 @@
     resize();
     createAmbientParticles();
     createConfetti();
-    setTimeout(spawnFirework, 700);
   }
 
   // Pausar/reanudar el fondo animado según si la pestaña está visible (ahorra batería/CPU)
-  document.addEventListener("visibilitychange", () => {
-    if (document.hidden) {
+  function syncAnimation() {
+    clearTimeout(fireworkTimer);
+    if (document.hidden || motionPreference.matches) {
       if (animationId) cancelAnimationFrame(animationId);
       animationId = null;
-    } else if (!animationId) {
-      draw();
+      fireworks = [];
+      ctx.clearRect(0, 0, width, height);
+    } else {
+      if (!animationId) draw();
+      fireworkTimer = setTimeout(spawnFirework, 700);
     }
-  });
+  }
+  document.addEventListener("visibilitychange", syncAnimation);
+  motionPreference.addEventListener("change", syncAnimation);
 
   window.addEventListener("resize", () => {
     resize();
@@ -277,7 +291,7 @@
   });
 
   init();
-  draw();
+  syncAnimation();
 })();
 
 // ===== Botón "Ver detalles": View Transition + fallback con destello =====
@@ -304,6 +318,8 @@
       element.classList.add("visible");
     });
     window.scrollTo({ top: 0, behavior: "auto" });
+    panelDatos.setAttribute("tabindex", "-1");
+    panelDatos.focus({ preventScroll: true });
   }
 
   function showWithFlashFallback() {
@@ -344,6 +360,17 @@
 (function () {
   const revealElements = document.querySelectorAll(".reveal");
   if (!revealElements.length) return;
+  const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
+  if (motionPreference.matches || !("IntersectionObserver" in window)) {
+    revealElements.forEach((el) => el.classList.add("visible"));
+    return;
+  }
+  document.documentElement.classList.add("motion-ready");
+  document.querySelectorAll(".gallery-grid, .details-grid, .quote-section").forEach((group) => {
+    group.querySelectorAll(".reveal").forEach((el, index) => {
+      el.style.setProperty("--reveal-delay", `${(index % 4) * 75}ms`);
+    });
+  });
 
   const observer = new IntersectionObserver(
     (entries) => {
@@ -354,10 +381,16 @@
         }
       });
     },
-    { threshold: 0.2 }
+    { threshold: 0.08, rootMargin: "0px 0px -24px 0px" }
   );
 
   revealElements.forEach((el) => observer.observe(el));
+  motionPreference.addEventListener("change", () => {
+    if (motionPreference.matches) {
+      observer.disconnect();
+      revealElements.forEach((el) => el.classList.add("visible"));
+    }
+  });
 })();
 
 // ===== Cuenta regresiva =====
@@ -400,8 +433,8 @@
     secondsEl.textContent = pad(seconds);
   }
 
-  updateCountdown();
   const timer = setInterval(updateCountdown, 1000);
+  updateCountdown();
 })();
 
 // ===== Galería: abrir foto en grande (lightbox) =====
@@ -412,18 +445,35 @@
   const closeBtn = document.getElementById("lightbox-close");
 
   if (!galleryImages.length || !lightbox) return;
+  let previousFocus = null;
 
   galleryImages.forEach((img) => {
-    img.addEventListener("click", () => {
+    const item = img.closest(".gallery-item");
+    item.tabIndex = 0;
+    item.setAttribute("role", "button");
+    item.setAttribute("aria-label", `Ampliar ${img.alt}`);
+    function openLightbox() {
+      previousFocus = item;
       lightboxImg.src = img.src;
       lightboxImg.alt = img.alt;
       lightbox.classList.add("active");
+      document.body.classList.add("lightbox-open");
+      closeBtn.focus();
+    }
+    item.addEventListener("click", openLightbox);
+    item.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openLightbox();
+      }
     });
   });
 
   function closeLightbox() {
     lightbox.classList.remove("active");
+    document.body.classList.remove("lightbox-open");
     lightboxImg.src = "";
+    previousFocus?.focus();
   }
 
   closeBtn.addEventListener("click", closeLightbox);
@@ -433,7 +483,12 @@
   });
 
   document.addEventListener("keydown", (e) => {
+    if (!lightbox.classList.contains("active")) return;
     if (e.key === "Escape") closeLightbox();
+    if (e.key === "Tab") {
+      e.preventDefault();
+      closeBtn.focus();
+    }
   });
 })();
 
@@ -535,56 +590,6 @@
   });
 })();
 
-// ===== Código QR y copia del enlace de la invitación =====
-(function () {
-  const qrContainer = document.getElementById("invitation-qr");
-  const copyButton = document.getElementById("copy-invitation-link");
-  const copyLabel = document.getElementById("copy-link-label");
-  if (!qrContainer || !copyButton || !copyLabel) return;
-
-  // URL pública que compartirán el código QR y el botón "Copiar enlace".
-  const configuredInvitationUrl = "https://mi-graduacion-2026gr.netlify.app/";
-  const currentUrl = new URL(window.location.href);
-  currentUrl.hash = "";
-  const invitationUrl = configuredInvitationUrl || currentUrl.href;
-
-  if (typeof window.QRCode === "function") {
-    new window.QRCode(qrContainer, {
-      text: invitationUrl,
-      width: 148,
-      height: 148,
-      colorDark: "#080b16",
-      colorLight: "#f8f4e8",
-      correctLevel: window.QRCode.CorrectLevel.H,
-    });
-  } else {
-    qrContainer.innerHTML = '<span class="qr-unavailable">No se pudo generar el código QR.</span>';
-  }
-
-  async function copyInvitationUrl() {
-    try {
-      await navigator.clipboard.writeText(invitationUrl);
-    } catch (error) {
-      const temporaryInput = document.createElement("input");
-      temporaryInput.value = invitationUrl;
-      temporaryInput.setAttribute("readonly", "");
-      temporaryInput.style.position = "fixed";
-      temporaryInput.style.opacity = "0";
-      document.body.appendChild(temporaryInput);
-      temporaryInput.select();
-      document.execCommand("copy");
-      temporaryInput.remove();
-    }
-
-    copyLabel.textContent = "¡Enlace copiado!";
-    window.setTimeout(() => {
-      copyLabel.textContent = "Copiar enlace";
-    }, 1800);
-  }
-
-  copyButton.addEventListener("click", copyInvitationUrl);
-})();
-
 // ===== Inclinación 3D sutil para tarjetas (solo escritorio) =====
 (function () {
   const supportsFinePointer = window.matchMedia("(hover: hover) and (pointer: fine) and (min-width: 769px)").matches;
@@ -608,6 +613,7 @@
     }
 
     card.addEventListener("pointermove", (event) => {
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
       pointerX = event.clientX;
       pointerY = event.clientY;
       if (!animationFrame) animationFrame = requestAnimationFrame(updateTilt);

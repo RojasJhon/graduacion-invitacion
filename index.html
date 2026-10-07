@@ -198,21 +198,6 @@
         <p class="rsvp-help">Se abrirá WhatsApp con tu confirmación lista para enviar.</p>
       </form>
 
-      <div class="qr-card tilt-card reveal">
-        <div class="qr-copy">
-          <span class="qr-eyebrow">Comparte la invitación</span>
-          <h3>Escanea el código QR</h3>
-          <p>Apunta la cámara de tu celular para abrir esta invitación.</p>
-          <button type="button" class="copy-link-button" id="copy-invitation-link">
-            <span aria-hidden="true">↗</span>
-            <span id="copy-link-label">Copiar enlace</span>
-          </button>
-        </div>
-        <div class="qr-frame">
-          <div id="invitation-qr" aria-label="Código QR de la invitación"></div>
-        </div>
-      </div>
-
       <p class="rsvp-signature reveal">[Nombre del Graduado/a]</p>
     </section>
 
@@ -222,17 +207,11 @@
   <button id="music-toggle" class="music-toggle" aria-label="Reproducir música">🎵</button>
   <audio id="bg-audio" src="assets/audio/musica.mp3" loop></audio>
 
-  <div class="lightbox" id="lightbox">
-    <span class="lightbox-close" id="lightbox-close">&times;</span>
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Fotografía ampliada" tabindex="-1">
+    <button type="button" class="lightbox-close" id="lightbox-close" aria-label="Cerrar fotografía">&times;</button>
     <img src="" alt="" id="lightbox-img" />
   </div>
 
-  <script
-    src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"
-    integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA=="
-    crossorigin="anonymous"
-    referrerpolicy="no-referrer">
-  </script>
-  <script src="js/main.js"></script>
+<script src="js/main.js"></script>
 </body>
 </html>
