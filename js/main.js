@@ -345,7 +345,7 @@
         if (editing() || pointers.size || touches || heldKeys.size || document.body.classList.contains("lightbox-open")) return;
         paused = false;
         begin();
-      }, 1000);
+      }, 2000);
     }
     function pause() {
       if (cancelled) return;
