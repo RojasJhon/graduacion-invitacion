@@ -309,39 +309,86 @@
   function prepareDetailsScroll() {
     cancelNavigationScroll();
     let cancelled = false;
+    let paused = false;
+    let ready = false;
+    let resumeTimer = null;
+    let touches = 0;
+    const pointers = new Set();
+    const heldKeys = new Set();
+    const events = new AbortController();
     let frame = null;
     let viewTransition = null;
     const scrollKeys = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "PageUp", "PageDown", "Home", "End", " "]);
     function cleanup() {
-      window.removeEventListener("wheel", interrupt);
-      window.removeEventListener("touchstart", interrupt);
-      window.removeEventListener("pointerdown", interrupt);
-      window.removeEventListener("keydown", onKey);
-      document.removeEventListener("visibilitychange", onVisibility);
-      motionPreference.removeEventListener("change", onPreference);
-    }
-    function interrupt() {
       cancelled = true;
+      clearTimeout(resumeTimer);
+      events.abort();
+      modalObserver.disconnect();
+    }
+    function stopFrame() {
       if (frame !== null) cancelAnimationFrame(frame);
       frame = null;
+    }
+    function interrupt() {
+      stopFrame();
       cleanup();
       viewTransition?.skipTransition();
     }
+    function editing() {
+      return document.activeElement?.matches('input, textarea, select, [contenteditable]:not([contenteditable="false"])');
+    }
+    function scheduleResume() {
+      clearTimeout(resumeTimer);
+      if (cancelled || !paused || pointers.size || touches || heldKeys.size || editing() || document.body.classList.contains("lightbox-open")) return;
+      resumeTimer = setTimeout(() => {
+        if (cancelled || document.hidden || motionPreference.matches || !ready) return;
+        if (editing() || pointers.size || touches || heldKeys.size || document.body.classList.contains("lightbox-open")) return;
+        paused = false;
+        begin();
+      }, 1000);
+    }
+    function pause() {
+      if (cancelled) return;
+      paused = true;
+      stopFrame();
+      viewTransition?.skipTransition();
+      scheduleResume();
+    }
     function onKey(event) {
-      if (scrollKeys.has(event.key)) interrupt();
+      if (scrollKeys.has(event.key)) heldKeys.add(event.key);
+      if (scrollKeys.has(event.key) || editing()) pause();
     }
     function onVisibility() {
       if (document.hidden) interrupt();
     }
     function onPreference() { interrupt(); }
-    window.addEventListener("wheel", interrupt, { passive: true });
-    window.addEventListener("touchstart", interrupt, { passive: true });
-    window.addEventListener("pointerdown", interrupt, { passive: true });
-    window.addEventListener("keydown", onKey);
-    document.addEventListener("visibilitychange", onVisibility);
-    motionPreference.addEventListener("change", onPreference);
+    const passive = { passive: true, signal: events.signal };
+    window.addEventListener("wheel", pause, passive);
+    window.addEventListener("touchstart", (event) => { touches = event.touches.length; pause(); }, passive);
+    window.addEventListener("touchmove", pause, passive);
+    const releaseTouch = (event) => { touches = event.touches.length; scheduleResume(); };
+    window.addEventListener("touchend", releaseTouch, passive);
+    window.addEventListener("touchcancel", releaseTouch, passive);
+    window.addEventListener("pointerdown", (event) => { pointers.add(event.pointerId); pause(); }, passive);
+    const releasePointer = (event) => { pointers.delete(event.pointerId); scheduleResume(); };
+    window.addEventListener("pointerup", releasePointer, passive);
+    window.addEventListener("pointercancel", releasePointer, passive);
+    window.addEventListener("keydown", onKey, { signal: events.signal });
+    window.addEventListener("keyup", (event) => { heldKeys.delete(event.key); scheduleResume(); }, { signal: events.signal });
+    window.addEventListener("scroll", () => { if (paused) scheduleResume(); }, passive);
+    document.addEventListener("focusin", () => { if (editing()) pause(); }, { signal: events.signal });
+    document.addEventListener("focusout", () => { queueMicrotask(scheduleResume); }, { signal: events.signal });
+    const modalObserver = new MutationObserver(() => {
+      if (document.body.classList.contains("lightbox-open")) pause();
+      else scheduleResume();
+    });
+    modalObserver.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+    document.addEventListener("visibilitychange", onVisibility, { signal: events.signal });
+    motionPreference.addEventListener("change", onPreference, { signal: events.signal });
     cancelNavigationScroll = interrupt;
     function begin() {
+      ready = true;
+      if (paused) return;
       if (cancelled || !panelDatos.classList.contains("active")) {
         cleanup();
         return;
@@ -365,6 +412,7 @@
       let started = null;
       function step(now) {
         if (cancelled) return;
+        if (editing() || document.body.classList.contains("lightbox-open")) { pause(); return; }
         if (started === null) started = now;
         const elapsed = Math.min(duration, (now - started) / 1000);
         let travelled;
