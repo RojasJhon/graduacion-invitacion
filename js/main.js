@@ -302,7 +302,83 @@
   const flash = document.getElementById("flash-overlay");
   if (!scrollBtn || !panelInicio || !panelDatos || !flash) return;
 
-  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let cancelNavigationScroll = () => {};
+
+  // Listen from the click onward, including while the panel transition is pending.
+  function prepareDetailsScroll() {
+    cancelNavigationScroll();
+    let cancelled = false;
+    let frame = null;
+    let viewTransition = null;
+    const scrollKeys = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "PageUp", "PageDown", "Home", "End", " "]);
+    function cleanup() {
+      window.removeEventListener("wheel", interrupt);
+      window.removeEventListener("touchstart", interrupt);
+      window.removeEventListener("pointerdown", interrupt);
+      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("visibilitychange", onVisibility);
+      motionPreference.removeEventListener("change", onPreference);
+    }
+    function interrupt() {
+      cancelled = true;
+      if (frame !== null) cancelAnimationFrame(frame);
+      frame = null;
+      cleanup();
+      viewTransition?.skipTransition();
+    }
+    function onKey(event) {
+      if (scrollKeys.has(event.key)) interrupt();
+    }
+    function onVisibility() {
+      if (document.hidden) interrupt();
+    }
+    function onPreference() { interrupt(); }
+    window.addEventListener("wheel", interrupt, { passive: true });
+    window.addEventListener("touchstart", interrupt, { passive: true });
+    window.addEventListener("pointerdown", interrupt, { passive: true });
+    window.addEventListener("keydown", onKey);
+    document.addEventListener("visibilitychange", onVisibility);
+    motionPreference.addEventListener("change", onPreference);
+    cancelNavigationScroll = interrupt;
+    function begin() {
+      if (cancelled || !panelDatos.classList.contains("active")) {
+        cleanup();
+        return;
+      }
+      // Measure after the transition so the panel's entrance transform is finished.
+      const start = window.scrollY;
+      const limit = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+      const destination = limit;
+      const distance = destination - start;
+      if (motionPreference.matches || Math.abs(distance) < 2) {
+        window.scrollTo({ top: destination, behavior: "instant" });
+        cleanup();
+        return;
+      }
+      // Slow guided tour (~140 CSS pixels/second), with gentle acceleration and braking.
+      // Duration grows with the page instead of rushing longer mobile layouts.
+      const ramp = 1.4;
+      const duration = Math.max(4, Math.abs(distance) / 140 + ramp);
+      const speed = Math.abs(distance) / (duration - ramp);
+      const rampDistance = (seconds) => speed * (seconds / 2 - ramp * Math.sin(Math.PI * seconds / ramp) / (2 * Math.PI));
+      let started = null;
+      function step(now) {
+        if (cancelled) return;
+        if (started === null) started = now;
+        const elapsed = Math.min(duration, (now - started) / 1000);
+        let travelled;
+        if (elapsed < ramp) travelled = rampDistance(elapsed);
+        else if (elapsed > duration - ramp) travelled = Math.abs(distance) - rampDistance(duration - elapsed);
+        else travelled = speed * (elapsed - ramp / 2);
+        window.scrollTo({ top: start + Math.sign(distance) * travelled, behavior: "instant" });
+        if (elapsed < duration) frame = requestAnimationFrame(step);
+        else { frame = null; cleanup(); }
+      }
+      frame = requestAnimationFrame(step);
+    }
+    return { begin, setTransition: (transition) => { viewTransition = transition; } };
+  }
 
   function startMusic() {
     const musicBtn = document.getElementById("music-toggle");
@@ -322,7 +398,7 @@
     panelDatos.focus({ preventScroll: true });
   }
 
-  function showWithFlashFallback() {
+  function showWithFlashFallback(navigation) {
     flash.style.transition = "opacity 0.15s ease-in";
     flash.style.opacity = "1";
 
@@ -331,14 +407,18 @@
 
       flash.style.transition = "opacity 0.6s ease-out";
       flash.style.opacity = "0";
+      // Match the existing panel entrance; cancellation also covers this delay.
+      setTimeout(navigation.begin, 700);
     }, 150);
   }
 
   scrollBtn.addEventListener("click", () => {
+    const navigation = prepareDetailsScroll();
     startMusic();
 
-    if (prefersReducedMotion) {
+    if (motionPreference.matches) {
       showInvitation();
+      navigation.begin();
       return;
     }
 
@@ -346,13 +426,16 @@
       document.documentElement.classList.add("is-view-transitioning");
       panelDatos.classList.add("view-transition-entered");
       const transition = document.startViewTransition(showInvitation);
-      transition.finished.finally(() => {
+      navigation.setTransition(transition);
+      const finish = () => {
         document.documentElement.classList.remove("is-view-transitioning");
-      });
+        navigation.begin();
+      };
+      transition.finished.then(finish, finish);
       return;
     }
 
-    showWithFlashFallback();
+    showWithFlashFallback(navigation);
   });
 })();
 
